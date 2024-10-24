@@ -1,0 +1,9 @@
+sqs:
+  #ARN role
+  role: ""
+  #Queue URL
+  queue: ""
+
+#You can use https://webhook.site
+webhook:
+  endpoint: ""

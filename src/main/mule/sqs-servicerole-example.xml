@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:sqs="http://www.mulesoft.org/schema/mule/sqs"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/sqs http://www.mulesoft.org/schema/mule/sqs/current/mule-sqs.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	
+	<flow name="sqs-publish-messages-flow" doc:id="f80915e0-b586-440e-abc3-5cab8a9227e4">
+		<http:listener doc:name="Listener" doc:id="637d247b-f9d8-4417-bbde-a1953f9f6ede" config-ref="HTTP_Listener_config" path="/notifications" />
+		<logger level="INFO" doc:name="Logger" doc:id="c0b4a890-fd3d-41b0-827e-e42d42b1a09b" message="Publishing new message... #[payload]" />
+		<ee:transform doc:name="Transform Message" doc:id="774523af-89cb-4fc3-8038-fbdcc7fd33cd">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+{
+	body: payload
+} as Object {
+	class : "org.mule.extension.sqs.api.model.Message"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<sqs:send-message doc:name="Send message" doc:id="8a6110d6-e015-44ef-b163-8adca0f68cbf" config-ref="Amazon_SQS_Configuration_Role" queueUrl="${sqs.queue}" />
+		<set-payload value='#[""]' doc:name="Set Payload" doc:id="4e6452b2-836b-4bc1-bac5-ad0271b88fa8" />
+	</flow>
+	<flow name="sqs-receive-messages-flow" doc:id="c68632bd-8af3-4c98-8413-18aac272d1cf" >
+		<sqs:receivemessages doc:name="Receive messages" doc:id="8d015d6b-2de3-4aa8-a089-533af86de40d" config-ref="Amazon_SQS_Configuration_Role" queueUrl="https://sqs.us-east-1.amazonaws.com/976912312809/notification-queue-dev"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2983eb1b-a9dd-4fd6-8c8f-6388918da267" message="Receiving new message... #[payload]"/>
+		<http:request method="POST" doc:name="Request" doc:id="6334e38a-26a4-4672-82c7-ccc03003b604" url="${webhook.endpoint}"/>
+	</flow>
+</mule>
